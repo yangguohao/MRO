@@ -1,0 +1,150 @@
+# Copyright (c) 2025, NVIDIA CORPORATION. All rights reserved.
+# 
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#  * Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#  * Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#  * Neither the name of NVIDIA CORPORATION nor the names of its
+#    contributors may be used to endorse or promote products derived
+#    from this software without specific prior written permission.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY
+# EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+# OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# ===========================
+# Results Processing Configuration  
+# ===========================
+# Configuration for post-processing benchmark results
+
+# ===========================
+# Use Existing Results
+# ===========================
+existing_results:
+  synthetic:
+    prefill:
+      input_dir: "data/synthetic/gpu/prefill/"
+      expected_models: ["1.5B", "8B", "14B"]
+      
+    decode:
+      input_dir: "data/synthetic/gpu/decode/"
+      output_dir: "data/synthetic/gpu/decode/processed/"
+      expected_models: ["1.5B", "8B", "14B"]
+      
+    cpu_decode_synthetic:
+      name: "cpu_decode_synthetic"
+      description: "CPU Decode with synthetic Dataset"
+      input_dir: "data/synthetic/cpu/decode/"
+      output_dir: "data/synthetic/cpu/decode/processed/"
+      
+    gpu_decode_synthetic:
+      name: "gpu_decode_synthetic"
+      description: "GPU Decode With Synthetic Dataset"
+      input_dir: "data/synthetic/gpu/decode/"
+      output_dir: "data/synthetic/gpu/decode/processed/"
+      
+    gpu_scaling:
+      name: "scaling"
+      description: "GPU Scaling Dataset using synthetic"
+      input_dir: "data/synthetic/gpu/scaling/"
+      output_dir: "data/synthetic/gpu/scaling/processed/"
+      
+  mmlu:
+    # MMLU Results - CPU (Tegra)
+    cpu_decode_mmlu:
+      name: "cpu_decode_mmlu"
+      description: "CPU Decode with MMLU Dataset"
+      input_dir: "data/mmlu/cpu/decode/"
+      output_dir: "data/mmlu/cpu/decode/processed/"
+      
+    # MMLU Results - GPU (Tegra)
+    gpu_decode_mmlu:
+      name: "gpu_decode_mmlu"
+      description: "GPU Decode With All MMLU Dataset"
+      input_dir: "data/mmlu/gpu/decode/"
+      output_dir: "data/mmlu/gpu/decode/processed/"
+      
+    # MMLU Results - Server
+    server_mmlu:
+      name: "server_mmlu"
+      description: "Server MMLU Evaluation Results"
+      input_dir: "data/mmlu/server/"
+      output_dir: "data/mmlu/server/processed/"
+      
+  planner:
+    # Planner Results - Server
+    server_planner:
+      name: "server_planner"
+      description: "Server Planner Evaluation Results"
+      input_dir: "data/planner/server/"
+      output_dir: "data/planner/server/processed/"
+
+# ===========================
+# New Results Output
+# ===========================
+results:
+  base_dir: "data/"
+  
+  synthetic:
+    prefill:
+      input_dir: "data/synthetic/gpu/prefill/"
+      output_dir: "data/synthetic/gpu/prefill/processed/"
+      
+    decode:
+      input_dir: "data/synthetic/gpu/decode/"
+      output_dir: "data/synthetic/gpu/decode/processed/"
+      
+    scaling:
+      input_dir: "data/synthetic/gpu/scaling/"
+      output_dir: "data/synthetic/gpu/scaling/processed/"
+      
+  mmlu:
+    server:
+      input_dir: "data/mmlu/server/"
+      output_dir: "data/mmlu/server/processed/"
+      model_specific: true
+    tegra:
+      input_dir: "data/mmlu/tegra/"
+      output_dir: "data/mmlu/tegra/processed/"
+      
+  planner:
+    server:
+      input_dir: "data/planner/server/"
+      output_dir: "data/planner/server/processed/"
+    
+  aime:
+    input_dir: "data/aime/"
+    output_dir: "data/aime/processed/"
+
+# ===========================
+# Model Name Mapping
+# ===========================
+model_names: {}
+
+# ===========================
+# Processing Settings
+# ===========================
+processing:
+  default_analysis: false
+  default_consolidate_only: false
+  
+  prefill:
+    expected_models: ["1.5B", "8B", "14B"]
+    
+  decode:
+    analysis_metrics: ["latency", "power", "energy"]
+    
+  scaling:
+    scaling_factors: [1, 2, 4, 8]

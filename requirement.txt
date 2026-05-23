@@ -1,0 +1,15 @@
+##  From https://github.com/QwenLM/Qwen2.5-Math/tree/main/evaluation
+# common
+# vllm==v0.6.4.post1
+# tqdm
+datasets
+# torch
+# transformers
+# python_dateutil
+
+# math_eval
+antlr4-python3-runtime==4.11.0
+word2number
+Pebble
+timeout-decorator
+uv pip install git+https://github.com/NICTA/pyairports.git

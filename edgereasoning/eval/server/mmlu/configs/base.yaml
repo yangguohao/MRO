@@ -1,0 +1,75 @@
+# Copyright (c) 2025, NVIDIA CORPORATION. All rights reserved.
+# 
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#  * Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#  * Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#  * Neither the name of NVIDIA CORPORATION nor the names of its
+#    contributors may be used to endorse or promote products derived
+#    from this software without specific prior written permission.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY
+# EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+# OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# Base Evaluation Configuration
+# 4096 token reasoning evaluation with comprehensive analysis
+
+name: "base"
+description: "Full reasoning evaluation with 4096 token limit"
+
+# Model settings
+model:
+  max_tokens: 4096
+  max_model_len: 4096
+  temperature: 0.6
+  top_p: 0.95
+  tensor_parallel_size: 1
+  gpu_memory_utilization: 0.60
+  enable_metrics: true
+  vllm_version: "0.9.1" 
+
+# Evaluation settings
+evaluation:
+  num_questions: null  
+  batch_size: 1  
+  shuffle_questions: false
+  
+# Prompting strategy
+prompting:
+  template_type: "reasoning"  
+  system_prompt: |
+    You are an expert at solving multiple-choice questions. 
+    Analyze the question carefully, think through the problem step by step, 
+    and provide your reasoning before selecting the best answer.
+    Format your final answer clearly as: "The answer is [X]" where X is A, B, C, or D.
+  
+  user_template: |
+    Question: {question}
+    
+    Choices:
+    A) {choice_a}
+    B) {choice_b}
+    C) {choice_c}
+    D) {choice_d}
+    
+    Please analyze this question step by step and provide your reasoning before selecting the best answer.
+
+# Output settings
+output:
+  save_detailed_responses: true
+  save_timing_metrics: true
+  save_energy_metrics: true
+  generate_summary_report: true

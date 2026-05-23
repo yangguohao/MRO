@@ -1,0 +1,187 @@
+#!/usr/bin/env python3
+
+# Copyright (c) 2025, NVIDIA CORPORATION. All rights reserved.
+# 
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#  * Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#  * Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#  * Neither the name of NVIDIA CORPORATION nor the names of its
+#    contributors may be used to endorse or promote products derived
+#    from this software without specific prior written permission.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY
+# EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+# OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+"""
+Base Evaluation Script - Full reasoning MMLU evaluation
+"""
+
+import os
+import sys
+import json
+import argparse
+import traceback
+import signal
+import atexit
+from pathlib import Path
+from datetime import datetime
+
+os.environ['VLLM_ENABLE_METRICS'] = 'true'
+os.environ['VLLM_PROFILE'] = 'true'
+os.environ['VLLM_DETAILED_METRICS'] = 'true'
+os.environ['VLLM_REQUEST_METRICS'] = 'true'
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(str(Path(__file__).parents[4]))
+
+from src.evaluators.base_evaluator import BaseEvaluator
+from src.data_loaders.mmlu_loader import MMLULoader
+from src.utils.cleanup import setup_cleanup_handlers, register_model_for_cleanup, cleanup_all
+from loaders.benchmarks import get_benchmark_config
+from loaders.results import get_results_config
+from loaders.models import get_default_reasoning_model
+
+setup_cleanup_handlers()
+
+
+def main():
+    """Run base evaluation on all subjects."""
+    parser = argparse.ArgumentParser(description='Base MMLU Evaluation')
+    parser.add_argument('--model', default=None, help='Model path')
+    parser.add_argument('--config', default='configs/base.yaml', help='Config file path')
+    parser.add_argument('--max-tokens', type=int, help='Override max tokens (optional)')
+    args = parser.parse_args()
+
+    config = get_benchmark_config()
+    results_config = get_results_config()
+    
+    # Use provided model or get default reasoning model
+    model_path = args.model if args.model else get_default_reasoning_model()
+    model_name = model_path.split('/')[-1] if '/' in model_path else model_path
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    
+    base_results_dir = results_config.get_result_base_dir('mmlu', model_name=model_path)
+    
+    output_base = base_results_dir / 'base'
+    os.makedirs(output_base, exist_ok=True)
+
+    print("Starting Base MMLU Evaluation - ALL SUBJECTS")
+    print("=================================================")
+    print(f"Model: {model_path}")
+    print(f"Config: {args.config}")
+    if args.max_tokens:
+        print(f"Max tokens override: {args.max_tokens}")
+    print(f"Output base: {output_base}")
+    print(f"Timestamp: {timestamp}\n")
+
+    try:
+        evaluator = BaseEvaluator(args.config)
+        if args.max_tokens:
+            evaluator.config.model['max_tokens'] = args.max_tokens
+
+        # Setup model once
+        print("* Setting up model...")
+        evaluator.setup_model(model_path)
+        
+        # Register model for cleanup
+        if hasattr(evaluator, 'model'):
+            register_model_for_cleanup(evaluator.model)
+
+        loader = MMLULoader()
+        all_subjects = loader.get_available_subjects()
+        print(f"* Found {len(all_subjects)} subjects to evaluate")
+
+        successful = 0
+        total_correct = 0
+        total_questions = 0
+
+        for i, subject in enumerate(all_subjects, 1):
+            print(f"\n{'='*60}")
+            print(f"[{i}/{len(all_subjects)}] Evaluating subject: {subject}")
+            print(f"{'='*60}")
+            try:
+                subject_dir = os.path.join(output_base, subject)
+                result = evaluator.evaluate_subject(
+                    model_path=model_path,
+                    subject=subject,
+                    output_dir=subject_dir
+                )
+                print(f"* {subject} completed! Accuracy: {result.accuracy:.2%}")
+                successful += 1
+                total_correct += result.correct_answers
+                total_questions += result.total_questions
+            except Exception as e:
+                print(f"ERROR: {subject} failed: {e}")
+
+        overall_accuracy = total_correct / total_questions if total_questions else 0.0
+        print(f"\n{'='*60}")
+        print("BASE EVALUATION - ALL SUBJECTS SUMMARY")
+        print(f"{'='*60}")
+        print(f"Model: {model_path}")
+        print(f"Total Subjects: {len(all_subjects)}")
+        print(f"Successful: {successful}/{len(all_subjects)}")
+        print(f"Overall Accuracy: {overall_accuracy:.2%}")
+        print(f"Total Questions: {total_questions}")
+        print(f"Total Correct: {total_correct}")
+
+        summary = {
+            'model': model_path,
+            'config': args.config,
+            'timestamp': timestamp,
+            'total_subjects': len(all_subjects),
+            'successful_subjects': successful,
+            'overall_accuracy': overall_accuracy,
+            'total_questions': total_questions,
+            'total_correct': total_correct,
+            'output_base': str(output_base),
+            'config_details': {
+                'name': evaluator.config.name,
+                'description': evaluator.config.description,
+                'model_settings': {
+                    'max_tokens': evaluator.config.model.get('max_tokens'),
+                    'max_model_len': evaluator.config.model.get('max_model_len'),
+                    'temperature': evaluator.config.model.get('temperature'),
+                    'top_p': evaluator.config.model.get('top_p'),
+                    'tensor_parallel_size': evaluator.config.model.get('tensor_parallel_size'),
+                    'gpu_memory_utilization': evaluator.config.model.get('gpu_memory_utilization')
+                },
+                'evaluation_settings': evaluator.config.evaluation,
+                'prompting_strategy': {
+                    'template_type': evaluator.config.prompting.get('template_type'),
+                    'system_prompt': evaluator.config.prompting.get('system_prompt'),
+                    'user_template': evaluator.config.prompting.get('user_template')
+                },
+                'output_settings': evaluator.config.output
+            }
+        }
+        summary_file = os.path.join(output_base, 'summary.json')
+        with open(summary_file, 'w') as f:
+            json.dump(summary, f, indent=2)
+        print(f"* Summary saved to: {summary_file}")
+
+        return successful == len(all_subjects)
+    except Exception as e:
+        print(f"ERROR: Full evaluation failed: {e}")
+        traceback.print_exc()
+        return False
+    finally:
+        cleanup_all()
+
+
+if __name__ == '__main__':
+    success = main()
+    sys.exit(0 if success else 1)
