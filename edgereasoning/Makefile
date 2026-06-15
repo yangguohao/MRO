@@ -172,7 +172,7 @@ prefill:
 			echo "TIP: Run 'make setup' (which starts the container) or 'cd eval/tegra && ./open.sh 1'"; \
 			exit 1; \
 		fi; \
-		docker exec -i "$$CID" bash -lc 'cd /workspace/edgereasoning/eval/tegra/mmlu && ./launch.sh prefill'; \
+		docker exec -i "$$CID" bash -lc 'cd /workspace/MRO/edgereasoning && make prefill'; \
 	fi
 
 .PHONY: decode
@@ -193,7 +193,7 @@ decode:
 			echo "TIP: Run 'make setup' (which starts the container) or 'cd eval/tegra && ./open.sh 1'"; \
 			exit 1; \
 		fi; \
-		docker exec -i "$$CID" bash -lc 'cd /workspace/edgereasoning/eval/tegra/mmlu && ./launch.sh decode'; \
+		docker exec -i "$$CID" bash -lc 'cd /workspace/MRO/edgereasoning && make decode'; \
 	fi
 
 .PHONY: tt-scaling
@@ -214,7 +214,7 @@ tt-scaling:
 			echo "TIP: Run 'make setup' (which starts the container) or 'cd eval/tegra && ./open.sh 1'"; \
 			exit 1; \
 		fi; \
-		docker exec -i "$$CID" bash -lc 'cd /workspace/edgereasoning/eval/tegra/mmlu && ./launch.sh tt_scaling'; \
+		docker exec -i "$$CID" bash -lc 'cd /workspace/MRO/edgereasoning && make tt_scaling'; \
 	fi
 
 synthetic: prefill decode tt-scaling
