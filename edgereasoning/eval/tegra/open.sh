@@ -2,7 +2,11 @@
 
 IMAGE="dustynv/vllm:0.8.6-r36.4-cu128-24.04"
 CONTAINER_NAME="vllm_worker" # 给容器起个固定名字，方便管理
-PROJECT_PATH="/home/yang/workspace/edgereasoning" # 宿主机路径
+
+# 获取当前脚本所在位置，然后向上找到 MRO 的根目录
+# 脚本路径: .../edgereasoning/eval/tegra/open.sh
+# 需要找到: .../MRO
+MRO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
 
 # 1. 尝试获取正在运行的容器 ID
 CID=$(docker ps --filter "ancestor=${IMAGE}" --format "{{.ID}}" | head -n1)
@@ -10,15 +14,14 @@ CID=$(docker ps --filter "ancestor=${IMAGE}" --format "{{.ID}}" | head -n1)
 # 2. 如果没有运行中的容器，则启动一个
 if [ -z "$CID" ]; then
   echo "* No running container found. Starting a new one..."
+  echo "* Mounting MRO root: ${MRO_ROOT} → /workspace/MRO"
   
   # 启动容器：后台运行 (-d), 自动删除 (--rm), 开启 NVIDIA 运行时, 挂载代码目录
-  # 注意：将 /home/yang/workspace/edgereasoning 的父目录挂载到 /workspace/MRO
-  MRO_PATH="$(dirname "$PROJECT_PATH")"
   CID=$(docker run -d --rm --cap-add=NET_ADMIN \
     --name "$CONTAINER_NAME" \
     --runtime nvidia \
     --network host \
-    -v "${MRO_PATH}:/workspace/MRO" \
+    -v "${MRO_ROOT}:/workspace/MRO" \
     -w /workspace/MRO/edgereasoning \
     "$IMAGE" \
     sleep infinity) 
