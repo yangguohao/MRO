@@ -44,7 +44,7 @@ if [ "$1" != "1" ] || [ "$FORCE_INSTALL" = true ]; then
   echo "* Setting up environment (Installing packages)..."
 
   APT_PACKAGES=(screen vim)
-  PIP_PACKAGES=(datasets nvtx openpyxl matplotlib seaborn numpy pandas)
+  PIP_PACKAGES=(datasets nvtx openpyxl matplotlib seaborn numpy pandas antlr4-python3-runtime word2number Pebble timeout-decorator git+https://github.com/NICTA/pyairports.git)
 
   docker exec -it "$CID" bash -c "
     apt update && \
