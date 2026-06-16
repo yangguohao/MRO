@@ -12,12 +12,14 @@ if [ -z "$CID" ]; then
   echo "* No running container found. Starting a new one..."
   
   # 启动容器：后台运行 (-d), 自动删除 (--rm), 开启 NVIDIA 运行时, 挂载代码目录
+  # 注意：将 /home/yang/workspace/edgereasoning 的父目录挂载到 /workspace/MRO
+  MRO_PATH="$(dirname "$PROJECT_PATH")"
   CID=$(docker run -d --rm --cap-add=NET_ADMIN \
     --name "$CONTAINER_NAME" \
     --runtime nvidia \
     --network host \
-    -v "${PROJECT_PATH}:/workspace/edgereasoning" \
-    -w /workspace/edgereasoning \
+    -v "${MRO_PATH}:/workspace/MRO" \
+    -w /workspace/MRO/edgereasoning \
     "$IMAGE" \
     sleep infinity) 
 
@@ -52,4 +54,4 @@ fi
 
 # 4. 进入容器并切换到项目目录
 echo "* Connecting to container workspace..."
-exec docker exec -it "$CID" bash -c "cd /workspace/edgereasoning && exec bash"
+exec docker exec -it "$CID" bash -c "cd /workspace/MRO/edgereasoning && exec bash"
